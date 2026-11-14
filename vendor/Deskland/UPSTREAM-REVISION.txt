@@ -1,0 +1,7 @@
+Repository: https://github.com/BLEZZ0102/Deskland.git
+Revision: 9818b577402ff476e1b59da07970c56472713126
+Imported on: 2026-11-14
+
+Only the Beach and Meadow theme files and their runtime assets are vendored.
+The complete upstream checkout remains separately available in the parent
+workspace at ../upstream/Deskland/.

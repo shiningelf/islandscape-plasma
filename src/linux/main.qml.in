@@ -1,0 +1,391 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Linux / Plasma adapter for the upstream @THEME_ID@ theme.
+// Reads this output's desktop icon geometry and forwards it to the theme page.
+
+import QtQuick
+import org.kde.plasma.plasmoid
+import org.kde.plasma.wallpapers.image as PlasmaWallpaper
+import org.kde.kwindowsystem
+import QtWebEngine as WebEngine
+
+WallpaperItem {
+    id: spike
+
+    readonly property string tag: "ISLANDSCAPE"
+    readonly property string themeId: "@THEME_ID@"
+    readonly property url themeUrl: Qt.resolvedUrl("../themes/@THEME_ID@/@THEME_FILE@")
+    readonly property int pollInterval: 100
+    readonly property bool debugMode: false
+    // Qt's attached Screen DPR can stay stale after a live Plasma scale change.
+    // Use Chromium's DPR because flat.html converts incoming physical pixels
+    // back to CSS pixels with window.devicePixelRatio.
+    property real pixelRatio: 1
+    property bool pagePixelRatioReady: false
+
+    property bool pageReady: false
+    property bool pauseStateSent: false
+    property bool lastPauseState: false
+    property int sendCount: 0
+    property double lastSendTime: 0
+    property string lastPayload: ""
+    property string lastScanState: ""
+    property bool lastSentHadIcons: false
+    property double emptySince: 0
+
+    readonly property rect outputRect: Window.window
+        ? Qt.rect(Window.window.x, Window.window.y, Window.window.width, Window.window.height)
+        : Qt.rect(0, 0, width, height)
+    readonly property bool pauseForWindow: activeWindowMonitor.count > 0 && !KWindowSystem.showingDesktop
+
+    PlasmaWallpaper.MaximizedWindowMonitor {
+        id: activeWindowMonitor
+        regionGeometry: spike.outputRect
+    }
+
+    function log(message) {
+        if (debugMode)
+            console.info(tag + ": " + message);
+    }
+
+    function updatePagePixelRatio(value) {
+        var ratio = Number(value);
+        if (!isFinite(ratio) || ratio <= 0)
+            return;
+        if (!pagePixelRatioReady || Math.abs(pixelRatio - ratio) > 0.001) {
+            pixelRatio = ratio;
+            pagePixelRatioReady = true;
+            lastPayload = "";
+            lastSendTime = 0;
+            log("page DPR synchronized=" + pixelRatio);
+            scanAndSend();
+        }
+    }
+
+    function refreshPagePixelRatio() {
+        if (!pageReady)
+            return;
+        webView.runJavaScript("(function(){if(!window.__islandscapeDprListener){window.__islandscapeDprListener=true;window.addEventListener('resize',function(){console.log('__ISLANDSCAPE_DPR__'+window.devicePixelRatio);});}return window.devicePixelRatio;})()",
+                              function(result) { spike.updatePagePixelRatio(result); });
+    }
+
+    function syncPauseState() {
+        if (!pageReady)
+            return;
+        var paused = pauseForWindow;
+        if (pauseStateSent && paused === lastPauseState)
+            return;
+        lastPauseState = paused;
+        pauseStateSent = true;
+        var payload = JSON.stringify({ t: "pause", v: paused });
+        webView.runJavaScript("window.postMessage(" + JSON.stringify(payload) + ", '*');");
+        log("automatic pause=" + paused + " matchingWindows=" + activeWindowMonitor.count);
+    }
+
+    onPauseForWindowChanged: syncPauseState()
+
+    function itemClass(item) {
+        try {
+            return String(item);
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function findDesktopContainment() {
+        var item = spike.parent;
+        while (item) {
+            try {
+                if (item.objectName === "folder" && itemClass(item).indexOf("ContainmentItem") >= 0)
+                    return item;
+                item = item.parent;
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    function findPositionerGrids(root) {
+        var found = [];
+        var stack = [root];
+        while (stack.length) {
+            var item = stack.pop();
+            if (itemClass(item).indexOf("GridView") >= 0) {
+                try {
+                    if (item.model && itemClass(item.model).indexOf("Positioner") >= 0)
+                        found.push(item);
+                } catch (e) {
+                    // Ignore unrelated GridViews without a readable model.
+                }
+            }
+            var children = [];
+            try {
+                children = item.children || [];
+            } catch (e) {
+                children = [];
+            }
+            for (var i = 0; i < children.length; ++i)
+                stack.push(children[i]);
+        }
+        return found;
+    }
+
+    function containmentDragActive(grid, containment) {
+        var item = grid.parent;
+        while (item && item !== containment) {
+            try {
+                // FolderView exposes FolderModel.dragInProgressAnywhere. Keep
+                // the last complete geometry while Plasma moves the dragged
+                // item out of Positioner and into its drag image.
+                if (typeof item.dragInProgressAnywhere === "boolean")
+                    return item.dragInProgressAnywhere;
+            } catch (e) {
+                // Continue up the visual tree if this item has no such property.
+            }
+            item = item.parent;
+        }
+        return false;
+    }
+
+    function scanAndSend() {
+        if (!pageReady || !pagePixelRatioReady)
+            return;
+
+        var containment = findDesktopContainment();
+        if (!containment) {
+            reportScanState("desktop containment not ready");
+            return;
+        }
+
+        var grids = findPositionerGrids(containment);
+        if (!grids.length) {
+            reportScanState("no Positioner GridView under this containment");
+            return;
+        }
+
+        // This desktop containment normally has one Positioner-backed view.
+        // If Plasma adds another, prefer the view with the largest item model.
+        var grid = grids[0];
+        for (var g = 1; g < grids.length; ++g) {
+            if (Number(grids[g].count) > Number(grid.count))
+                grid = grids[g];
+        }
+
+        var count = Math.max(0, Number(grid.count) || 0);
+        var visible = Boolean(grid.visible && grid.opacity > 0);
+        var dragActive = containmentDragActive(grid, containment);
+        var rects = [];
+        var missing = 0;
+        var geometryErrors = [];
+        var visibleDelegates = 0;
+        var iconCount = 0;
+        var estimatedDelegates = 0;
+        var clippedIcons = 0;
+        var offscreenIcons = 0;
+        var testFileIndex = -1;
+        var testFileRect = "not in model";
+
+        if (visible) {
+            for (var index = 0; index < count; ++index) {
+                var modelIndex = null;
+                var isBlank = false;
+                try {
+                    modelIndex = grid.model.index(index, 0);
+                    // Positioner rowCount includes empty cells needed to
+                    // preserve stripe positions. BlankRole is Qt::UserRole+1.
+                    isBlank = Boolean(grid.model.data(modelIndex, 257));
+                } catch (e) {
+                    reportScanState("cannot read BlankRole at slot=" + index);
+                    return;
+                }
+                if (isBlank)
+                    continue;
+
+                var delegate = null;
+                try {
+                    delegate = grid.itemAtIndex(index);
+                } catch (e) {
+                    delegate = null;
+                }
+                iconCount++;
+
+                try {
+                    var topLeft;
+                    var bottomRight;
+                    if (delegate) {
+                        if (delegate.visible && delegate.opacity > 0)
+                            visibleDelegates++;
+                        topLeft = spike.mapFromItem(delegate, 0, 0);
+                        bottomRight = spike.mapFromItem(delegate, delegate.width, delegate.height);
+                    } else {
+                        // GridView recycles delegates outside its viewport. With
+                        // very large icons, an offscreen real item can therefore
+                        // have no itemAtIndex() object. Reconstruct its cell from
+                        // the Positioner index instead of blocking the whole scan.
+                        var perStripe = Math.max(1, Number(grid.model.perStripe) || 1);
+                        var stripe = Math.floor(index / perStripe);
+                        var position = index % perStripe;
+                        var flowLeftToRight = Number(grid.flow) === 0;
+                        var cellX = (flowLeftToRight ? position : stripe) * Number(grid.cellWidth);
+                        var cellY = (flowLeftToRight ? stripe : position) * Number(grid.cellHeight);
+                        topLeft = spike.mapFromItem(grid.contentItem, cellX, cellY);
+                        bottomRight = spike.mapFromItem(grid.contentItem,
+                                                       cellX + Number(grid.cellWidth),
+                                                       cellY + Number(grid.cellHeight));
+                        estimatedDelegates++;
+                    }
+
+                    var rawRect = [
+                        Math.round(topLeft.x * pixelRatio),
+                        Math.round(topLeft.y * pixelRatio),
+                        Math.round(bottomRight.x * pixelRatio),
+                        Math.round(bottomRight.y * pixelRatio)
+                    ];
+                    var screenWidth = Math.round(spike.width * pixelRatio);
+                    var screenHeight = Math.round(spike.height * pixelRatio);
+                    var rect = [Math.max(0, rawRect[0]), Math.max(0, rawRect[1]),
+                                Math.min(screenWidth, rawRect[2]),
+                                Math.min(screenHeight, rawRect[3])];
+                    if (rect[2] <= rect[0] || rect[3] <= rect[1]) {
+                        offscreenIcons++;
+                        continue;
+                    }
+                    if (rect[0] !== rawRect[0] || rect[1] !== rawRect[1] ||
+                        rect[2] !== rawRect[2] || rect[3] !== rawRect[3])
+                        clippedIcons++;
+                    rects.push(rect);
+
+                    try {
+                        var modelUrl = String(grid.model.data(modelIndex, 261));
+                        var displayName = String(grid.model.data(modelIndex, 0));
+                        if (displayName === "test.txt" || modelUrl.slice(-8) === "test.txt") {
+                            testFileIndex = index;
+                            testFileRect = JSON.stringify(rect) +
+                                           (delegate ? "" : " (estimated cell)");
+                        }
+                    } catch (e) {
+                        // Model URL is diagnostic only; geometry does not depend on it.
+                    }
+                } catch (e) {
+                    missing++;
+                    geometryErrors.push(index + ":" + e);
+                }
+            }
+        }
+
+        if (missing) {
+            reportScanState("waiting for delegates count=" + count + " loaded=" + rects.length +
+                            " errors=" + geometryErrors.join(" | "));
+            return;
+        }
+
+        if (visible && dragActive && lastSentHadIcons) {
+            emptySince = 0;
+            reportScanState("drag active; holding last complete icon set, current=" + rects.length);
+            return;
+        }
+
+        if (visible && rects.length === 0 && lastSentHadIcons) {
+            // A short empty model interval also happens while Plasma completes
+            // a drop. Delay a genuine clear until the empty state settles.
+            if (emptySince === 0)
+                emptySince = Date.now();
+            if (Date.now() - emptySince < 800) {
+                reportScanState("brief empty list; retaining last icon set");
+                return;
+            }
+        } else {
+            emptySince = 0;
+        }
+
+        var message = { t: "icons", vis: visible, r: rects };
+        var payload = JSON.stringify(message);
+        reportScanState("gridViews=" + grids.length + " count=" + count +
+                        " icons=" + iconCount + " visible=" + visible +
+                        " visibleDelegates=" + visibleDelegates +
+                        " estimatedDelegates=" + estimatedDelegates +
+                        " clipped=" + clippedIcons + " offscreen=" + offscreenIcons +
+                        " dragActive=" + dragActive +
+                        " test.txtIndex=" + testFileIndex + " test.txtRect=" + testFileRect +
+                        " dpr=" + pixelRatio);
+        if (payload === lastPayload)
+            return;
+
+        // Upstream's Windows host polls icon geometry every 400ms. Keep that
+        // cadence so small desktop rearrangements do not churn the shoreline
+        // and palm layout immediately on every position update.
+        var now = Date.now();
+        if (lastSendTime > 0 && now - lastSendTime < 400)
+            return;
+
+        lastPayload = payload;
+        lastSendTime = now;
+        lastSentHadIcons = visible && rects.length > 0;
+        sendCount++;
+        var script = "window.postMessage(" + JSON.stringify(payload) + ", '*');";
+        webView.runJavaScript(script, function(result) {
+            spike.log("ICONS_SEND#" + spike.sendCount + " count=" + rects.length +
+                      " visible=" + visible + " payload=" + payload + " result=" + result);
+        });
+    }
+
+    function reportScanState(state) {
+        if (state !== lastScanState) {
+            lastScanState = state;
+            log("SCAN " + state);
+        }
+    }
+
+    Component.onCompleted: {
+        log("loaded theme=" + themeId + " size=" + width + "x" + height);
+    }
+
+    WebEngine.WebEngineView {
+        id: webView
+        anchors.fill: parent
+        visible: true
+        focus: false
+
+        onLoadingChanged: function(request) {
+            spike.log("loadingChanged status=" + request.status + " url=" + request.url);
+            if (request.status === 2) {
+                spike.pageReady = true;
+                spike.refreshPagePixelRatio();
+                spike.syncPauseState();
+                scanTimer.start();
+                dprTimer.start();
+            }
+        }
+
+        onJavaScriptConsoleMessage: function(level, message, line, sourceId) {
+            if (message.indexOf("__ISLANDSCAPE_DPR__") === 0) {
+                spike.updatePagePixelRatio(message.substring("__ISLANDSCAPE_DPR__".length));
+                return;
+            }
+            if (spike.debugMode || level >= 2)
+                console.warn(spike.tag + ": JS[" + level + "] " + sourceId + ":" + line + " " + message);
+        }
+
+        onRenderProcessTerminated: function(details) {
+            console.error(spike.tag + ": WebEngine render process terminated " + JSON.stringify(details));
+        }
+
+        Component.onCompleted: {
+            webView.url = spike.themeUrl + "?wallpaper=1";
+        }
+    }
+
+    Timer {
+        id: scanTimer
+        interval: spike.pollInterval
+        repeat: true
+        onTriggered: spike.scanAndSend()
+    }
+
+    Timer {
+        id: dprTimer
+        interval: 1000
+        repeat: true
+        onTriggered: spike.refreshPagePixelRatio()
+    }
+}

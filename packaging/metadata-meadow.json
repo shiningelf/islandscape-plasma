@@ -1,0 +1,13 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Id": "org.islandscape.plasma.meadow",
+        "Name": "Islandscape — Meadow",
+        "Description": "Animated meadow that reshapes around desktop icons",
+        "License": "GPL-3.0-only",
+        "EnabledByDefault": true,
+        "Icon": "preferences-desktop-wallpaper"
+    },
+    "Keywords": "wallpaper;meadow;desktop;icons",
+    "X-KDE-ParentApp": "org.kde.plasmashell"
+}
