@@ -14,17 +14,18 @@
 
 ### 截图
 
-| Beach 桌面 | Meadow 桌面 |
+| Beach 桌面 | Beach 设置 |
 |:---:|:---:|
-| <img src="doc/img/beach-desktop.png" width="100%" alt="Beach 桌面壁纸"> | <img src="doc/img/meadow-desktop.png" width="100%" alt="Meadow 桌面壁纸"> |
+| <img src="doc/img/beach-desktop.png" width="100%" alt="Beach 桌面壁纸"> | <img src="doc/img/beach-settings.png" width="100%" alt="Beach 壁纸设置界面"> |
+
+| Meadow 桌面 | Meadow 设置 |
+|:---:|:---:|
+| <img src="doc/img/meadow-desktop.png" width="100%" alt="Meadow 桌面壁纸"> | <img src="doc/img/meadow-settings.png" width="100%" alt="Meadow 壁纸设置界面"> |
 
 **多屏桌面**
 
 <img src="doc/img/multi-monitor.png" width="100%" alt="多屏桌面运行 Islandscape">
 
-| Beach 设置 | Meadow 设置 |
-|:---:|:---:|
-| <img src="doc/img/beach-settings.png" width="100%" alt="Beach 壁纸设置界面"> | <img src="doc/img/meadow-settings.png" width="100%" alt="Meadow 壁纸设置界面"> |
 
 ### 内含壁纸
 
@@ -145,9 +146,17 @@ distributions and desktop environments have not been verified.
 
 ### Screenshots
 
-See the screenshot gallery in the Simplified Chinese section above for the
-Beach and Meadow desktops, a multi-monitor setup, and both wallpaper settings
-panels.
+| Beach desktop | Beach settings |
+|:---:|:---:|
+| <img src="doc/img/beach-desktop.png" width="100%" alt="Beach desktop wallpaper"> | <img src="doc/img/beach-settings.png" width="100%" alt="Beach wallpaper settings"> |
+
+| Meadow desktop | Meadow settings |
+|:---:|:---:|
+| <img src="doc/img/meadow-desktop.png" width="100%" alt="Meadow desktop wallpaper"> | <img src="doc/img/meadow-settings.png" width="100%" alt="Meadow wallpaper settings"> |
+
+**Multi-monitor desktop**
+
+<img src="doc/img/multi-monitor.png" width="100%" alt="Islandscape running on multiple monitors">
 
 ### Included wallpapers
 
