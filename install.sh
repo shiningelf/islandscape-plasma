@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 set -euo pipefail
 
-project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 kpackage_tool="${KPACKAGE_TOOL:-kpackagetool6}"
 kpackage_args=(--type Plasma/Wallpaper)
 command -v "$kpackage_tool" >/dev/null || { printf 'Install kpackagetool6 (Plasma 6) first.\n' >&2; exit 1; }

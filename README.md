@@ -4,12 +4,27 @@
 
 ## 简体中文
 
-Islandscape 是面向 KDE Plasma 用户安装的动态壁纸移植版，基于
-[Deskland Preview](https://github.com/BLEZZ0102/Deskland) 中开放的 Beach 和
-Meadow 主题。主题仍使用 HTML/WebGL2 渲染；Linux 部分使用 QML 壁纸插件，读取桌面图标的
-实际位置、跟踪显示缩放，并在最大化或全屏窗口覆盖屏幕时暂停渲染。
+起因是我平时用 Arch Linux 和 KDE Plasma。[Deskland](https://deskland.app/) 作者目前提供 Windows 版，也在开发 macOS 版，暂时没有 Linux 版。看到作者开放了源码后，我就把其中开放的 Beach 和 Meadow 主题移植到了 Plasma，做成自己能安装使用的动态壁纸。
 
-Islandscape 使用独立的产品名称和插件 ID，是一个独立的社区移植项目，并非 Deskland 官方版本。
+感谢 [Deskland Preview 作者](https://github.com/BLEZZ0102/Deskland) 开源这个项目和两个非常漂亮的主题，让这次移植成为可能。
+
+壁纸场景仍由 HTML/WebGL2 绘制，Plasma 端用 QML 插件把它们接入桌面，也负责读取图标位置、适配显示缩放和处理窗口遮挡。动画帧率上限为 30 FPS。Plasma 可以分别管理各台显示器的刷新率；2K 和 4K 分辨率已完成验证。
+
+目前我只在自己的 Arch Linux + KDE Plasma 环境中测试过，其他发行版和桌面环境还没有验证。
+
+### 截图
+
+| Beach 桌面 | Meadow 桌面 |
+|:---:|:---:|
+| <img src="doc/img/beach-desktop.png" width="100%" alt="Beach 桌面壁纸"> | <img src="doc/img/meadow-desktop.png" width="100%" alt="Meadow 桌面壁纸"> |
+
+**多屏桌面**
+
+<img src="doc/img/multi-monitor.png" width="100%" alt="多屏桌面运行 Islandscape">
+
+| Beach 设置 | Meadow 设置 |
+|:---:|:---:|
+| <img src="doc/img/beach-settings.png" width="100%" alt="Beach 壁纸设置界面"> | <img src="doc/img/meadow-settings.png" width="100%" alt="Meadow 壁纸设置界面"> |
 
 ### 内含壁纸
 
@@ -109,14 +124,30 @@ scripts/                  构建、安装、备份、恢复和卸载脚本
 
 ## English
 
-Islandscape is a user-installed KDE Plasma wallpaper port based on the free
-Beach and Meadow themes from [Deskland Preview](https://github.com/BLEZZ0102/Deskland).
-The original theme renderers remain HTML/WebGL2; the Linux layer is a QML
-wallpaper plugin that supplies real desktop icon rectangles, tracks display
-scale, and pauses a display when a maximized or fullscreen window covers it.
+I use Arch Linux with KDE Plasma as my daily desktop. [Deskland](https://deskland.app/)
+is currently available for Windows, and its author is also working on a macOS
+version. There is no Linux version yet. When the author made the source
+available, I ported the Beach and Meadow themes to Plasma so I could use them
+on my own desktop.
 
-Islandscape uses its own product name and plugin IDs. It is an independent
-community port and is not an official Deskland release.
+Thanks to the [Deskland Preview author](https://github.com/BLEZZ0102/Deskland)
+for open-sourcing the project and its two beautiful themes, making this port
+possible.
+
+The scenes are still rendered with HTML/WebGL2. A QML wallpaper plugin connects
+them to Plasma and handles desktop icon positions, display scaling, and covered
+screens. Animation is capped at 30 FPS. Plasma lets me set the refresh rate for
+each display separately. The wallpaper has been verified at 2K and 4K
+resolutions.
+
+So far, I have only tested it on my own Arch Linux + KDE Plasma setup. Other
+distributions and desktop environments have not been verified.
+
+### Screenshots
+
+See the screenshot gallery in the Simplified Chinese section above for the
+Beach and Meadow desktops, a multi-monitor setup, and both wallpaper settings
+panels.
 
 ### Included wallpapers
 

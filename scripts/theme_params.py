@@ -362,6 +362,15 @@ ColumnLayout {
         spacing: 10
 
 @@CONTROLS@@
+    QQC2.Button {
+        id: resetButton
+        text: root.localized({"en": "Restore defaults", "zh": "恢复默认值"})
+        Layout.alignment: Qt.AlignRight
+        Layout.topMargin: 2
+        onClicked: root.resetToDefaults()
+    }
+    }
+
     function localized(value) {
         if (typeof value === "string")
             return value;
@@ -376,15 +385,6 @@ ColumnLayout {
                 return value.en || value.zh || "";
         }
         return value.en || value.zh || "";
-    }
-
-    QQC2.Button {
-        id: resetButton
-        text: root.localized({"en": "Restore defaults", "zh": "恢复默认值"})
-        Layout.alignment: Qt.AlignRight
-        Layout.topMargin: 2
-        onClicked: root.resetToDefaults()
-    }
     }
 
     function resetToDefaults() {
