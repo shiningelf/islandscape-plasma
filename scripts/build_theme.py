@@ -25,7 +25,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import theme_params as tp  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VENDOR_PROTOTYPE = ROOT / "vendor" / "Deskland" / "prototype"
+UPSTREAM_PROTOTYPE = ROOT / "upstream" / "Deskland" / "prototype"
 
 
 def read_json(path: pathlib.Path):
@@ -106,8 +106,8 @@ def main() -> int:
             shutil.copytree(item, theme_out / item.name, dirs_exist_ok=True)
         elif item.is_file():
             copy_file(item, theme_out / item.name)
-    for relative in theme.get("vendorFiles", []):
-        copy_file(VENDOR_PROTOTYPE / relative, theme_out / relative)
+    for relative in theme.get("upstreamFiles", []):
+        copy_file(UPSTREAM_PROTOTYPE / relative, theme_out / relative)
 
     entry = theme_out / theme["entry"]
     if not entry.is_file():

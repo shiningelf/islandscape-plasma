@@ -34,9 +34,9 @@ build_theme() {
     python3 "$project_root/scripts/build_theme.py" \
         --source "$source_dir" --output "$package_root" --metadata "$metadata_fallback"
     cp -- "$project_root/LICENSE" "$package_root/LICENSE"
-    cp -- "$project_root/vendor/Deskland/NOTICE" "$package_root/NOTICE"
-    cp -- "$project_root/vendor/Deskland/TRADEMARKS.md" "$package_root/UPSTREAM-TRADEMARKS.md"
-    cp -- "$project_root/vendor/Deskland/UPSTREAM-REVISION.txt" "$package_root/UPSTREAM-REVISION.txt"
+    cp -- "$project_root/upstream/Deskland/NOTICE" "$package_root/NOTICE"
+    cp -- "$project_root/upstream/Deskland/TRADEMARKS.md" "$package_root/UPSTREAM-TRADEMARKS.md"
+    cp -- "$project_root/upstream/Deskland/UPSTREAM-REVISION.txt" "$package_root/UPSTREAM-REVISION.txt"
     python3 -m json.tool "$package_root/metadata.json" >/dev/null
     printf 'Built %s\n' "$package_root"
 }

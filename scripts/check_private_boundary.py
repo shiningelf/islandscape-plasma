@@ -25,7 +25,7 @@ import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PRIVATE_DIR = ROOT / "local-private"
-PUBLIC_SOURCE_DIRS = ["src", "vendor", "packaging", "scripts"]
+PUBLIC_SOURCE_DIRS = ["src", "upstream", "packaging", "scripts"]
 PUBLIC_PACKAGES = ROOT / "build" / "packages"
 PRIVATE_PACKAGES = ROOT / "build" / "private-packages"
 

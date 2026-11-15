@@ -12,8 +12,14 @@ One theme describes its parameters in a ``theme.json`` file:
         "params": {
             "library": "coastal",          # shared numeric constraints
             "extra": {"turtles": {...}},   # theme-only parameters
-            "groups": [{"name": "...", "keys": ["sigma", "warp"]}],
-            "labels": {"sigma": {"label": "...", "hint": "...", "unit": "px"}},
+            "groups": [{"name": {"en": "...", "zh": "..."}, "keys": ["sigma", "warp"]}],
+            "labels": {
+                "sigma": {
+                    "label": {"en": "...", "zh": "..."},
+                    "hint": {"en": "...", "zh": "..."},
+                    "unit": {"en": "px", "zh": "px"}
+                }
+            },
             "defaults": {"sigma": 100}
         }
     }
@@ -34,7 +40,7 @@ from __future__ import annotations
 import json
 import pathlib
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LIBRARY_PATH = ROOT / "src" / "linux" / "param-library.json"
@@ -73,7 +79,7 @@ def resolve_params(theme: Dict[str, Any], library: Dict[str, Any]) -> List[Dict[
     seen = set()
 
     for group in groups:
-        group_name = group.get("name") or ""
+        group_name = _translations(group.get("name") or "")
         for key in group.get("keys") or []:
             if key in seen:
                 raise ThemeError(f"parameter {key!r} is listed in more than one group")
@@ -106,9 +112,9 @@ def resolve_params(theme: Dict[str, Any], library: Dict[str, Any]) -> List[Dict[
                 {
                     "key": key,
                     "group": group_name,
-                    "label": label.get("label") or key,
-                    "hint": label.get("hint") or "",
-                    "unit": label.get("unit") or "",
+                    "label": _translations(label.get("label") or key),
+                    "hint": _translations(label.get("hint") or ""),
+                    "unit": _translations(label.get("unit") or ""),
                     "format": label.get("format") or "",
                     "min": minimum,
                     "max": maximum,
@@ -175,9 +181,10 @@ def render_config_xml(params: List[Dict[str, Any]]) -> str:
         kind = "Int" if param["integer"] else "Double"
         default = int(param["default"]) if param["integer"] else param["default"]
         lines.append(f'    <entry name="{param["key"]}" type="{kind}">')
-        lines.append(f"      <label>{_escape(param['label'])}</label>")
-        if param["hint"]:
-            lines.append(f"      <tooltip>{_escape(param['hint'])}</tooltip>")
+        lines.append(f"      <label>{_escape(_bilingual_text(param['label']))}</label>")
+        hint = _bilingual_text(param["hint"])
+        if hint:
+            lines.append(f"      <tooltip>{_escape(hint)}</tooltip>")
         lines.append(f"      <default>{default}</default>")
         lines.append("    </entry>")
     lines += ["  </group>", "", "</kcfg>", ""]
@@ -193,27 +200,48 @@ def _escape(text: str) -> str:
     )
 
 
+def _translations(value: Any) -> Dict[str, str]:
+    """Normalize a string or an {en, zh} map for generated QML."""
+    if isinstance(value, dict):
+        english = str(value.get("en") or value.get("zh") or "")
+        chinese = str(value.get("zh") or value.get("en") or "")
+        return {"en": english, "zh": chinese}
+    text = str(value or "")
+    return {"en": text, "zh": text}
+
+
+def _bilingual_text(value: Dict[str, str]) -> str:
+    english, chinese = value.get("en", ""), value.get("zh", "")
+    if english and chinese and english != chinese:
+        return f"{english} / {chinese}"
+    return english or chinese
+
+
 def render_config_qml(params: List[Dict[str, Any]]) -> str:
     """Build contents/ui/config.qml from the resolved parameter list."""
     properties = []
     for param in params:
         kind = "int" if param["integer"] else "double"
         properties.append(
-            f"    // {param['group']}\n"
+            f"    // {_bilingual_text(param['group'])}\n"
             f"    property {kind} cfg_{param['key']}: {_default_literal(param)}\n"
             f"    property {kind} cfg_{param['key']}Default: {_default_literal(param)}"
         )
 
-    grouped_params: Dict[str, List[Dict[str, Any]]] = {}
+    grouped_params: Dict[str, Tuple[Dict[str, str], List[Dict[str, Any]]]] = {}
     for param in params:
-        grouped_params.setdefault(param["group"], []).append(param)
+        group_name = param["group"]
+        group_key = json.dumps(group_name, ensure_ascii=False, sort_keys=True)
+        if group_key not in grouped_params:
+            grouped_params[group_key] = (group_name, [])
+        grouped_params[group_key][1].append(param)
 
     controls = []
-    for group_name, group_params in grouped_params.items():
+    for group_name, group_params in grouped_params.values():
         rows = "\n\n".join(_render_control(param) for param in group_params)
         controls.append(
             "        QQC2.GroupBox {\n"
-            f'            title: "{_escape(group_name)}"\n'
+            f"            title: root.localized({qml_literal(group_name)})\n"
             "            Layout.fillWidth: true\n"
             "            ColumnLayout {\n"
             "                anchors.fill: parent\n"
@@ -247,7 +275,7 @@ def _render_control(param: Dict[str, Any]) -> str:
             "        RowLayout {\n"
             "            Layout.fillWidth: true\n"
             "            QQC2.CheckBox {\n"
-            f'                text: "{_escape(param["label"])}"\n'
+            f"                text: root.localized({qml_literal(param['label'])})\n"
             f"                checked: cfg_{key} > 0\n"
             f"                onClicked: cfg_{key} = checked ? 1 : 0\n"
             "            }\n"
@@ -257,8 +285,8 @@ def _render_control(param: Dict[str, Any]) -> str:
     minimum = int(param["min"]) if param["integer"] else param["min"]
     maximum = int(param["max"]) if param["integer"] else param["max"]
     step = int(param["step"]) if param["integer"] else param["step"]
-    unit = _escape(param["unit"])
-    suffix = f' + " {unit}"' if unit else ""
+    unit = param["unit"]
+    suffix = f' + " " + root.localized({qml_literal(unit)})' if unit.get("en") or unit.get("zh") else ""
     hint = ""
     if param["hint"]:
         hint = (
@@ -266,14 +294,14 @@ def _render_control(param: Dict[str, Any]) -> str:
             f"{key}Hover }}\n"
             "                QQC2.ToolTip.visible: "
             f"{key}Hover.hovered\n"
-            f'                QQC2.ToolTip.text: "{_escape(param["hint"])}"\n'
+            f"                QQC2.ToolTip.text: root.localized({qml_literal(param['hint'])})\n"
         )
     return (
         "        RowLayout {\n"
         "            Layout.fillWidth: true\n"
         "            spacing: 10\n"
         "            QQC2.Label {\n"
-        f'                text: "{_escape(param["label"])}"\n'
+        f"                text: root.localized({qml_literal(param['label'])})\n"
         "                Layout.preferredWidth: 150\n"
         "                elide: Text.ElideRight\n"
         "            }\n"
@@ -334,9 +362,25 @@ ColumnLayout {
         spacing: 10
 
 @@CONTROLS@@
+    function localized(value) {
+        if (typeof value === "string")
+            return value;
+        var languages = Qt.locale().uiLanguages;
+        if (!languages || languages.length === 0)
+            languages = [Qt.locale().name];
+        for (var i = 0; i < languages.length; ++i) {
+            var language = String(languages[i]).toLowerCase();
+            if (language.indexOf("zh") === 0)
+                return value.zh || value.en || "";
+            if (language.indexOf("en") === 0)
+                return value.en || value.zh || "";
+        }
+        return value.en || value.zh || "";
+    }
+
     QQC2.Button {
         id: resetButton
-        text: "Restore defaults"
+        text: root.localized({"en": "Restore defaults", "zh": "恢复默认值"})
         Layout.alignment: Qt.AlignRight
         Layout.topMargin: 2
         onClicked: root.resetToDefaults()

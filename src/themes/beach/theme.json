@@ -5,7 +5,7 @@
     "description": "Animated beach that reshapes around desktop icons",
     "entry": "flat.html",
     "keywords": "wallpaper;beach;desktop;icons",
-    "vendorFiles": [
+    "upstreamFiles": [
         "share.js",
         "assets/beach-coconut-palm-v2.png",
         "assets/beach-coconut-palm-curved.png",
@@ -16,18 +16,18 @@
     "params": {
         "library": "coastal",
         "groups": [
-            {"name": "Shoreline", "keys": ["sigma", "warp"]},
-            {"name": "Water", "keys": ["shoal", "shallow"]},
-            {"name": "Elements", "keys": ["palms", "kayaks", "birds"]}
+            {"name": {"en": "Shoreline", "zh": "海岸线"}, "keys": ["sigma", "warp"]},
+            {"name": {"en": "Water", "zh": "海水"}, "keys": ["shoal", "shallow"]},
+            {"name": {"en": "Elements", "zh": "海岸元素"}, "keys": ["palms", "kayaks", "birds"]}
         ],
         "labels": {
-            "sigma": {"label": "Distance from icons", "hint": "How far the shoreline keeps from the desktop icons", "unit": "px"},
-            "warp": {"label": "Shoreline twist", "hint": "How much the shoreline winds around"},
-            "shoal": {"label": "Transparent shallows", "hint": "How wide the water stays transparent over the sand", "unit": "px"},
-            "shallow": {"label": "Shallow sea width", "hint": "Distance from turquoise to deep blue", "unit": "px"},
-            "palms": {"label": "Palm trees", "hint": "Palms along the shore. Set to 0 to hide them.", "unit": "trees"},
-            "kayaks": {"label": "Kayaks", "unit": "boats"},
-            "birds": {"label": "Seagulls", "hint": "Gulls gliding and circling above the water", "unit": "birds"}
+            "sigma": {"label": {"en": "Distance from icons", "zh": "图标避让距离"}, "hint": {"en": "How far the shoreline keeps from the desktop icons", "zh": "海岸线与桌面图标保持的距离"}, "unit": {"en": "px", "zh": "像素"}},
+            "warp": {"label": {"en": "Shoreline twist", "zh": "海岸弯曲度"}, "hint": {"en": "How much the shoreline winds around", "zh": "海岸线绕开图标时的弯曲程度"}},
+            "shoal": {"label": {"en": "Transparent shallows", "zh": "透明浅滩宽度"}, "hint": {"en": "How wide the water stays transparent over the sand", "zh": "沙滩上方保持透明的水域宽度"}, "unit": {"en": "px", "zh": "像素"}},
+            "shallow": {"label": {"en": "Shallow sea width", "zh": "浅海宽度"}, "hint": {"en": "Distance from turquoise to deep blue", "zh": "从青绿色浅海过渡到深蓝海水的距离"}, "unit": {"en": "px", "zh": "像素"}},
+            "palms": {"label": {"en": "Palm trees", "zh": "棕榈树"}, "hint": {"en": "Palms along the shore. Set to 0 to hide them.", "zh": "海岸边的棕榈树数量；设为 0 可隐藏。"}, "unit": {"en": "trees", "zh": "棵"}},
+            "kayaks": {"label": {"en": "Kayaks", "zh": "皮划艇"}, "unit": {"en": "boats", "zh": "艘"}},
+            "birds": {"label": {"en": "Seagulls", "zh": "海鸟"}, "hint": {"en": "Gulls gliding and circling above the water", "zh": "在海面上滑翔和盘旋的海鸟数量"}, "unit": {"en": "birds", "zh": "只"}}
         },
         "defaults": {
             "sigma": 100,

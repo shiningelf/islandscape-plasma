@@ -5,14 +5,14 @@ Islandscape for Plasma is based on the free themes in
 `9818b577402ff476e1b59da07970c56472713126`.
 
 The upstream repository's `LICENSE`, `NOTICE`, and `TRADEMARKS.md` are included
-in [`vendor/Deskland/`](vendor/Deskland/). The upstream project code and theme
+in [`upstream/Deskland/`](upstream/Deskland/). The upstream project code and theme
 assets are GPL version 3. This project applies GPL-3.0-only to the combined
 distribution. Qt, KDE Frameworks, QtWebEngine and Chromium are system
 dependencies and are not bundled here.
 
 ## Source separation
 
-- `vendor/Deskland/prototype/` contains the unmodified upstream Beach and
+- `upstream/Deskland/prototype/` contains the unmodified upstream Beach and
   Meadow pages, support JavaScript and the images those themes use.
 - `src/themes/beach/flat.html` and `beach-palms.js` are the Linux-adapted
   Beach copies. They contain the QtWebEngine message adapter, physical-pixel

@@ -5,7 +5,7 @@
     "description": "Animated meadow that reshapes around desktop icons",
     "entry": "meadow.html",
     "keywords": "wallpaper;meadow;desktop;icons",
-    "vendorFiles": [
+    "upstreamFiles": [
         "share.js",
         "meadow-boy.js",
         "meadow-cat.js",
@@ -20,16 +20,16 @@
             "showCat": {"min": 0, "max": 1, "step": 1, "control": "toggle"}
         },
         "groups": [
-            {"name": "Around icons", "keys": ["sigma"]},
-            {"name": "Clouds", "keys": ["cover", "flow"]},
-            {"name": "Characters", "keys": ["showBoy", "showCat"]}
+            {"name": {"en": "Around icons", "zh": "图标周围"}, "keys": ["sigma"]},
+            {"name": {"en": "Clouds", "zh": "云层"}, "keys": ["cover", "flow"]},
+            {"name": {"en": "Characters", "zh": "角色"}, "keys": ["showBoy", "showCat"]}
         ],
         "labels": {
-            "sigma": {"label": "Cloud size", "hint": "How far the cloud around an icon spreads", "unit": "px"},
-            "cover": {"label": "Clouds over the meadow", "hint": "How many clouds drift over the open meadow", "format": "percent"},
-            "flow": {"label": "Flow speed", "hint": "How fast the clouds drift and change shape", "format": "times"},
-            "showBoy": {"label": "Show the boy", "hint": "The boy flying his kite"},
-            "showCat": {"label": "Show the cat", "hint": "The black kitten lying in the grass"}
+            "sigma": {"label": {"en": "Cloud size", "zh": "图标周围云朵范围"}, "hint": {"en": "How far the cloud around an icon spreads", "zh": "图标周围云朵扩散的范围"}, "unit": {"en": "px", "zh": "像素"}},
+            "cover": {"label": {"en": "Meadow cloud amount", "zh": "草地云量"}, "hint": {"en": "How many clouds drift over the open meadow", "zh": "开阔草地上飘过的云量"}, "format": "percent"},
+            "flow": {"label": {"en": "Cloud flow speed", "zh": "云层流动速度"}, "hint": {"en": "How fast the clouds drift and change shape", "zh": "云朵移动和变形的速度"}, "format": "times"},
+            "showBoy": {"label": {"en": "Show the boy", "zh": "显示放风筝的男孩"}, "hint": {"en": "The boy flying his kite", "zh": "显示正在放风筝的男孩"}},
+            "showCat": {"label": {"en": "Show the cat", "zh": "显示小猫"}, "hint": {"en": "The black kitten lying in the grass", "zh": "显示躺在草地上的黑色小猫"}}
         },
         "defaults": {
             "sigma": 72,

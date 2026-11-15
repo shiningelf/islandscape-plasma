@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "note": "Language-neutral numeric constraints for reusable parameter sets. A theme's theme.json picks a library, adds theme-only parameters inline, and supplies labels, hints, units and defaults. Labels and units deliberately live in the theme file because they are translated per theme.",
+    "note": "Language-neutral numeric constraints for reusable parameter sets. A theme's theme.json picks a library, adds theme-only parameters inline, and supplies bilingual labels, hints, units and defaults.",
     "libraries": {
         "coastal": {
             "sigma": {"min": 40, "max": 200, "step": 1},
