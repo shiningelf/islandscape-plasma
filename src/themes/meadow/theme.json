@@ -1,0 +1,42 @@
+{
+    "id": "meadow",
+    "packageId": "org.islandscape.plasma.meadow",
+    "name": "Islandscape — Meadow",
+    "description": "Animated meadow that reshapes around desktop icons",
+    "entry": "meadow.html",
+    "keywords": "wallpaper;meadow;desktop;icons",
+    "vendorFiles": [
+        "share.js",
+        "meadow-boy.js",
+        "meadow-cat.js",
+        "assets/meadow-kite-boy-level-face.png",
+        "assets/meadow-kite-boy-diagonal-run.png",
+        "assets/meadow-black-kitten.png"
+    ],
+    "params": {
+        "library": "meadow",
+        "extra": {
+            "showBoy": {"min": 0, "max": 1, "step": 1, "control": "toggle"},
+            "showCat": {"min": 0, "max": 1, "step": 1, "control": "toggle"}
+        },
+        "groups": [
+            {"name": "Around icons", "keys": ["sigma"]},
+            {"name": "Clouds", "keys": ["cover", "flow"]},
+            {"name": "Characters", "keys": ["showBoy", "showCat"]}
+        ],
+        "labels": {
+            "sigma": {"label": "Cloud size", "hint": "How far the cloud around an icon spreads", "unit": "px"},
+            "cover": {"label": "Clouds over the meadow", "hint": "How many clouds drift over the open meadow", "format": "percent"},
+            "flow": {"label": "Flow speed", "hint": "How fast the clouds drift and change shape", "format": "times"},
+            "showBoy": {"label": "Show the boy", "hint": "The boy flying his kite"},
+            "showCat": {"label": "Show the cat", "hint": "The black kitten lying in the grass"}
+        },
+        "defaults": {
+            "sigma": 72,
+            "cover": 0.3,
+            "flow": 1,
+            "showBoy": 1,
+            "showCat": 1
+        }
+    }
+}

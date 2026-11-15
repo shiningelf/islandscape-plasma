@@ -11,11 +11,12 @@ command -v "$kpackage_tool" >/dev/null || { printf 'kpackagetool6 is required to
 # pre-install backup is missing.
 "$project_root/scripts/restore-wallpapers.sh"
 
-for package_id in org.islandscape.plasma.beach org.islandscape.plasma.meadow; do
+while IFS= read -r package_id; do
+    [ -n "$package_id" ] || continue
     if "$kpackage_tool" "${kpackage_args[@]}" --list | grep -Fxq "$package_id"; then
         "$kpackage_tool" "${kpackage_args[@]}" --remove "$package_id"
     fi
-done
+done < <(python3 "$project_root/scripts/package_ids.py")
 
 state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
 rm -f -- "$state_home/islandscape-plasma/wallpapers.tsv"

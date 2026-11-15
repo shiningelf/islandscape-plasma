@@ -22,6 +22,10 @@ dependencies and are not bundled here.
 - `src/linux/main.qml.in` is the Plasma host. It reads per-screen desktop icon
   geometry, follows page DPR changes, holds geometry during drags, and uses
   Plasma's maximized/fullscreen window monitor to pause the affected output.
+  Its parameter table is generated from the theme description, so the host,
+  the configuration UI and the theme page always agree about the valid values.
+- `src/linux/param-library.json` holds the numeric rules of the parameter sets
+  that several themes share, currently the coastal one.
 - `packaging/` gives Beach and Meadow separate IDs so both are selectable in
   Plasma's wallpaper chooser.
 

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Linux / Plasma adapter for the upstream @THEME_ID@ theme.
 // Reads this output's desktop icon geometry and forwards it to the theme page.
+//
+// The parameter table below is generated from the theme's theme.json, the same
+// file that produces the configuration UI and the KConfig schema. Nothing in
+// this file may restate a range, a step or a default.
 
 import QtQuick
 import org.kde.plasma.plasmoid
@@ -16,8 +20,19 @@ WallpaperItem {
     readonly property url themeUrl: Qt.resolvedUrl("../themes/@THEME_ID@/@THEME_FILE@")
     readonly property int pollInterval: 100
     readonly property bool debugMode: false
+
+    // Generated from src/themes/@THEME_ID@/theme.json.
+    readonly property var themeParams: @THEME_PARAMS_JSON@
+    // The same constraints, in the shape the theme page expects.
+    readonly property var themeParamSpec: @THEME_PARAM_SPEC_JSON@
+    // The stored configuration of every parameter. QQmlPropertyMap exposes its
+    // keys as bindable properties, so this binding re-evaluates as soon as
+    // the configuration changes, which is how the theme page learns about a
+    // new value.
+    readonly property var storedValues: @THEME_CONFIG_VALUES@
+
     // Qt's attached Screen DPR can stay stale after a live Plasma scale change.
-    // Use Chromium's DPR because flat.html converts incoming physical pixels
+    // Use Chromium's DPR because the theme page converts incoming physical pixels
     // back to CSS pixels with window.devicePixelRatio.
     property real pixelRatio: 1
     property bool pagePixelRatioReady: false
@@ -31,6 +46,8 @@ WallpaperItem {
     property string lastScanState: ""
     property bool lastSentHadIcons: false
     property double emptySince: 0
+    property bool paramsSent: false
+    property var lastPushedValues: ({})
 
     readonly property rect outputRect: Window.window
         ? Qt.rect(Window.window.x, Window.window.y, Window.window.width, Window.window.height)
@@ -45,6 +62,106 @@ WallpaperItem {
     function log(message) {
         if (debugMode)
             console.info(tag + ": " + message);
+    }
+
+    /* ------------------------------------------------------------------
+       Theme parameters
+       ------------------------------------------------------------------ */
+
+    function paramByKey(key) {
+        for (var i = 0; i < themeParams.length; ++i) {
+            if (themeParams[i].key === key)
+                return themeParams[i];
+        }
+        return null;
+    }
+
+    function clampParam(param, value) {
+        var result = Number(value);
+        if (!isFinite(result))
+            result = Number(param["default"]);
+        if (param["min"] !== undefined && param["min"] !== null)
+            result = Math.max(Number(param["min"]), result);
+        if (param["max"] !== undefined && param["max"] !== null)
+            result = Math.min(Number(param["max"]), result);
+        var step = Number(param["step"]);
+        if (isFinite(step) && step > 0) {
+            // Round on the step grid, without floating point noise.
+            var decimals = 0, probe = step;
+            while (decimals < 6 && Math.abs(probe - Math.round(probe)) > 1e-9) {
+                probe *= 10;
+                decimals++;
+            }
+            result = Number((Math.round(result / step) * step).toFixed(decimals));
+        }
+        return result;
+    }
+
+    // The configuration map stores every entry as a bindable property, the
+    // generated binding above reads them.
+    function storedValue(param) {
+        var raw = spike.storedValues ? spike.storedValues[param.key] : undefined;
+        if (raw === undefined || raw === null)
+            raw = param["default"];
+        return spike.clampParam(param, raw);
+    }
+
+    function currentValues() {
+        var values = {};
+        for (var i = 0; i < themeParams.length; ++i)
+            values[themeParams[i].key] = spike.storedValue(themeParams[i]);
+        return values;
+    }
+
+    function allAtDefault(values) {
+        for (var i = 0; i < themeParams.length; ++i) {
+            if (values[themeParams[i].key] !== themeParams[i]["default"])
+                return false;
+        }
+        return true;
+    }
+
+    function postToPage(message) {
+        if (!webView)
+            return;
+        var text = JSON.stringify(message);
+        webView.runJavaScript("window.postMessage(" + JSON.stringify(text) + ", '*');");
+    }
+
+    // The page clamps with the same table, so an out-of-range value cannot
+    // reach the renderer even if a third party posts one.
+    function pushThemeParams() {
+        if (!spike.pageReady)
+            return;
+        if (!spike.paramsSent) {
+            spike.postToPage({ t: "params", v: spike.themeParamSpec });
+            spike.paramsSent = true;
+        }
+        var values = spike.currentValues();
+        var wasDefault = spike.allAtDefault(spike.lastPushedValues);
+        var isDefault = spike.allAtDefault(values);
+        var payload;
+        if (isDefault && !wasDefault)
+            payload = { t: "reset", v: values };
+        else
+            payload = { t: "settings", v: values };
+        spike.lastPushedValues = values;
+        spike.postToPage(payload);
+        spike.log("settings pushed " + JSON.stringify(payload));
+    }
+
+    // The stored configuration changed: push the new values to the page.
+    onStoredValuesChanged: pushThemeParams()
+
+    Connections {
+        target: spike.configuration
+        function onValueChanged(key, value) {
+            // QQmlPropertyMap only emits this for values that are updated
+            // from QML, changes that come from the configuration file arrive
+            // through the binding above.
+            spike.log("configuration changed " + key + "=" + value);
+            spike.pushThemeParams();
+        }
     }
 
     function updatePagePixelRatio(value) {
@@ -352,6 +469,7 @@ WallpaperItem {
                 spike.pageReady = true;
                 spike.refreshPagePixelRatio();
                 spike.syncPauseState();
+                spike.pushThemeParams();
                 scanTimer.start();
                 dprTimer.start();
             }
@@ -360,6 +478,12 @@ WallpaperItem {
         onJavaScriptConsoleMessage: function(level, message, line, sourceId) {
             if (message.indexOf("__ISLANDSCAPE_DPR__") === 0) {
                 spike.updatePagePixelRatio(message.substring("__ISLANDSCAPE_DPR__".length));
+                return;
+            }
+            if (message.indexOf("ISLANDSCAPE_QML_HOST_READY") === 0) {
+                // The page finished booting and installed its message listener.
+                spike.log("page reported ready");
+                spike.pushThemeParams();
                 return;
             }
             if (spike.debugMode || level >= 2)

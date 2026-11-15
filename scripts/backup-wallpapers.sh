@@ -5,6 +5,8 @@ state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
 state_dir="$state_home/islandscape-plasma"
 state_file="$state_dir/wallpapers.tsv"
 busctl_cmd="${BUSCTL_CMD:-busctl}"
+project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+owned_ids="$(python3 "$project_root/scripts/package_ids.py" | tr '\n' ' ')"
 
 if [[ -e "$state_file" ]]; then
     printf 'Keeping existing wallpaper backup: %s\n' "$state_file"
@@ -18,14 +20,14 @@ if ! state_json="$("$busctl_cmd" --user --json=short call org.kde.plasmashell /P
     printf 'Could not query Plasma wallpaper state. Run this inside your Plasma session.\n' >&2
     exit 1
 fi
-if ! ISLANDSCAPE_WALLPAPER_JSON="$state_json" python3 - >"$tmp_file" <<'PY'
+if ! ISLANDSCAPE_WALLPAPER_JSON="$state_json" ISLANDSCAPE_OWNED_IDS="$owned_ids" python3 - >"$tmp_file" <<'PY'
 import json
 import os
 import sys
 
 wrapper = json.loads(os.environ["ISLANDSCAPE_WALLPAPER_JSON"])
 desktops = json.loads(wrapper["data"][0])
-owned = {"org.islandscape.plasma.beach", "org.islandscape.plasma.meadow"}
+owned = set(os.environ.get("ISLANDSCAPE_OWNED_IDS", "").split())
 by_screen = {}
 active_owned = set()
 for desktop in desktops:

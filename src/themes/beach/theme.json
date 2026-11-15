@@ -1,0 +1,42 @@
+{
+    "id": "beach",
+    "packageId": "org.islandscape.plasma.beach",
+    "name": "Islandscape — Beach",
+    "description": "Animated beach that reshapes around desktop icons",
+    "entry": "flat.html",
+    "keywords": "wallpaper;beach;desktop;icons",
+    "vendorFiles": [
+        "share.js",
+        "assets/beach-coconut-palm-v2.png",
+        "assets/beach-coconut-palm-curved.png",
+        "assets/beach-coconut-palm-airy.png",
+        "assets/beach-coconut-palm-windswept.png",
+        "assets/beach-coconut-palm-arch.png"
+    ],
+    "params": {
+        "library": "coastal",
+        "groups": [
+            {"name": "Shoreline", "keys": ["sigma", "warp"]},
+            {"name": "Water", "keys": ["shoal", "shallow"]},
+            {"name": "Elements", "keys": ["palms", "kayaks", "birds"]}
+        ],
+        "labels": {
+            "sigma": {"label": "Distance from icons", "hint": "How far the shoreline keeps from the desktop icons", "unit": "px"},
+            "warp": {"label": "Shoreline twist", "hint": "How much the shoreline winds around"},
+            "shoal": {"label": "Transparent shallows", "hint": "How wide the water stays transparent over the sand", "unit": "px"},
+            "shallow": {"label": "Shallow sea width", "hint": "Distance from turquoise to deep blue", "unit": "px"},
+            "palms": {"label": "Palm trees", "hint": "Palms along the shore. Set to 0 to hide them.", "unit": "trees"},
+            "kayaks": {"label": "Kayaks", "unit": "boats"},
+            "birds": {"label": "Seagulls", "hint": "Gulls gliding and circling above the water", "unit": "birds"}
+        },
+        "defaults": {
+            "sigma": 100,
+            "warp": 34,
+            "shoal": 110,
+            "shallow": 260,
+            "palms": 5,
+            "kayaks": 2,
+            "birds": 3
+        }
+    }
+}

@@ -1,56 +1,65 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# Builds the wallpaper packages.
+#
+#   build/packages/          public themes, taken from src/themes/
+#   build/private-packages/  local only themes, taken from local-private/themes/
+#
+# A theme is any directory that holds a theme.json. Public and local themes
+# use the same builder, so a theme that is developed locally produces exactly
+# the same package shape as a theme that is published.
 set -euo pipefail
 
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-build_root="$project_root/build/packages"
-rm -rf -- "$build_root"
-mkdir -p -- "$build_root"
+public_root="$project_root/build/packages"
+private_root="$project_root/build/private-packages"
 
-build_one() {
-    local theme_id="$1"
-    local entry_file="$2"
-    local package_id="$3"
-    local package_root="$build_root/$package_id"
+rm -rf -- "$public_root" "$private_root"
+mkdir -p -- "$public_root" "$private_root"
 
-    mkdir -p -- "$package_root/contents/ui" "$package_root/contents/themes/$theme_id/assets"
-    cp -- "$project_root/packaging/metadata-$theme_id.json" "$package_root/metadata.json"
+build_theme() {
+    local source_dir="$1"
+    local output_root="$2"
+    local metadata_fallback="$3"
+
+    local theme_id package_id package_root
+    theme_id="$(basename -- "$source_dir")"
+    package_id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["packageId"])' \
+        "$source_dir/theme.json")"
+    package_root="$output_root/$package_id"
+
+    mkdir -p -- "$package_root/contents/ui" "$package_root/contents/config" \
+        "$package_root/contents/themes/$theme_id"
+    python3 "$project_root/scripts/build_theme.py" \
+        --source "$source_dir" --output "$package_root" --metadata "$metadata_fallback"
     cp -- "$project_root/LICENSE" "$package_root/LICENSE"
-    THEME_ID="$theme_id" THEME_FILE="$entry_file" OUTPUT="$package_root/contents/ui/main.qml" \
-        python3 - "$project_root/src/linux/main.qml.in" <<'PY'
-import os
-import pathlib
-import sys
-
-template = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
-rendered = template.replace("@THEME_ID@", os.environ["THEME_ID"])
-rendered = rendered.replace("@THEME_FILE@", os.environ["THEME_FILE"])
-pathlib.Path(os.environ["OUTPUT"]).write_text(rendered, encoding="utf-8")
-PY
-    cp -a -- "$project_root/src/themes/$theme_id/." "$package_root/contents/themes/$theme_id/"
     cp -- "$project_root/vendor/Deskland/NOTICE" "$package_root/NOTICE"
     cp -- "$project_root/vendor/Deskland/TRADEMARKS.md" "$package_root/UPSTREAM-TRADEMARKS.md"
     cp -- "$project_root/vendor/Deskland/UPSTREAM-REVISION.txt" "$package_root/UPSTREAM-REVISION.txt"
-    cp -- "$project_root/vendor/Deskland/prototype/share.js" "$package_root/contents/themes/$theme_id/share.js"
-    if [[ "$theme_id" == beach ]]; then
-        for asset in beach-coconut-palm-v2.png beach-coconut-palm-curved.png \
-                     beach-coconut-palm-airy.png beach-coconut-palm-windswept.png \
-                     beach-coconut-palm-arch.png; do
-            cp -- "$project_root/vendor/Deskland/prototype/assets/$asset" \
-                "$package_root/contents/themes/beach/assets/$asset"
-        done
-    else
-        cp -- "$project_root/vendor/Deskland/prototype/meadow-boy.js" \
-            "$package_root/contents/themes/meadow/meadow-boy.js"
-        cp -- "$project_root/vendor/Deskland/prototype/meadow-cat.js" \
-            "$package_root/contents/themes/meadow/meadow-cat.js"
-        for asset in meadow-kite-boy-level-face.png meadow-kite-boy-diagonal-run.png meadow-black-kitten.png; do
-            cp -- "$project_root/vendor/Deskland/prototype/assets/$asset" \
-                "$package_root/contents/themes/meadow/assets/$asset"
-        done
-    fi
     python3 -m json.tool "$package_root/metadata.json" >/dev/null
     printf 'Built %s\n' "$package_root"
 }
 
-build_one beach flat.html org.islandscape.plasma.beach
-build_one meadow meadow.html org.islandscape.plasma.meadow
+printf 'Public themes:\n'
+for source_dir in "$project_root"/src/themes/*/; do
+    [ -f "$source_dir/theme.json" ] || continue
+    build_theme "$source_dir" "$public_root" \
+        "$project_root/packaging/metadata-$(basename -- "$source_dir").json"
+done
+
+private_themes_dir="$project_root/local-private/themes"
+if [ -d "$private_themes_dir" ]; then
+    printf 'Local only themes:\n'
+    for source_dir in "$private_themes_dir"/*/; do
+        [ -f "$source_dir/theme.json" ] || continue
+        build_theme "$source_dir" "$private_root" ""
+    done
+else
+    printf 'No local private themes present, skipping.\n'
+fi
+
+printf '\nPackages are in %s\n' "$public_root"
+if [ -d "$private_themes_dir" ]; then
+    printf 'Local only packages are in %s\n' "$private_root"
+fi

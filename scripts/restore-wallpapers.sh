@@ -4,7 +4,11 @@ set -euo pipefail
 state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
 state_file="$state_home/islandscape-plasma/wallpapers.tsv"
 busctl_cmd="${BUSCTL_CMD:-busctl}"
-owned_ids=(org.islandscape.plasma.beach org.islandscape.plasma.meadow)
+project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+owned_ids=()
+while IFS= read -r package_id; do
+    [ -n "$package_id" ] && owned_ids+=("$package_id")
+done < <(python3 "$project_root/scripts/package_ids.py")
 
 active_file="$(mktemp)"
 trap 'rm -f -- "$active_file"' EXIT

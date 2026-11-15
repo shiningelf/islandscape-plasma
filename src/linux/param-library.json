@@ -1,0 +1,20 @@
+{
+    "version": 1,
+    "note": "Language-neutral numeric constraints for reusable parameter sets. A theme's theme.json picks a library, adds theme-only parameters inline, and supplies labels, hints, units and defaults. Labels and units deliberately live in the theme file because they are translated per theme.",
+    "libraries": {
+        "coastal": {
+            "sigma": {"min": 40, "max": 200, "step": 1},
+            "warp": {"min": 0, "max": 80, "step": 1},
+            "shoal": {"min": 0, "max": 300, "step": 1},
+            "shallow": {"min": 120, "max": 700, "step": 1},
+            "palms": {"min": 0, "max": 10, "step": 1},
+            "kayaks": {"min": 0, "max": 4, "step": 1},
+            "birds": {"min": 0, "max": 8, "step": 1}
+        },
+        "meadow": {
+            "sigma": {"min": 40, "max": 200, "step": 1},
+            "cover": {"min": 0, "max": 1, "step": 0.01},
+            "flow": {"min": 0, "max": 3, "step": 0.05}
+        }
+    }
+}
